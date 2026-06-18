@@ -1,10 +1,12 @@
 package net.app.novelv.domain.auth;
 
+import net.app.novelv.domain.user.Role;
 import net.app.novelv.domain.user.SocialProvider;
 import net.app.novelv.domain.user.User;
 import net.app.novelv.domain.user.UserStatus;
 
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public record AuthResponse(
         String tokenType,
@@ -23,7 +25,7 @@ public record AuthResponse(
             Integer coinBalance,
             SocialProvider provider,
             UserStatus status,
-            Set<String> roles
+            Set<RoleProfile> roles
     ) {
         public static UserProfile from(User user) {
             return new UserProfile(
@@ -34,8 +36,19 @@ public record AuthResponse(
                     user.getCoinBalance(),
                     user.getProvider(),
                     user.getStatus(),
-                    user.getRoleNames()
+                    user.getRoles().stream()
+                            .map(RoleProfile::from)
+                            .collect(Collectors.toUnmodifiableSet())
             );
+        }
+    }
+
+    public record RoleProfile(
+            String roleName,
+            String description
+    ) {
+        public static RoleProfile from(Role role) {
+            return new RoleProfile(role.getRoleName(), role.getDescription());
         }
     }
 }

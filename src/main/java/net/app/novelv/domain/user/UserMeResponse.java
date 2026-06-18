@@ -2,6 +2,7 @@ package net.app.novelv.domain.user;
 
 import java.time.LocalDateTime;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public record UserMeResponse(
         Long userId,
@@ -12,7 +13,7 @@ public record UserMeResponse(
         SocialProvider provider,
         UserStatus status,
         LocalDateTime createdAt,
-        Set<String> roles
+        Set<RoleProfile> roles
 ) {
     public static UserMeResponse from(User user) {
         return new UserMeResponse(
@@ -24,7 +25,18 @@ public record UserMeResponse(
                 user.getProvider(),
                 user.getStatus(),
                 user.getCreatedAt(),
-                user.getRoleNames()
+                user.getRoles().stream()
+                        .map(RoleProfile::from)
+                        .collect(Collectors.toUnmodifiableSet())
         );
+    }
+
+    public record RoleProfile(
+            String roleName,
+            String description
+    ) {
+        public static RoleProfile from(Role role) {
+            return new RoleProfile(role.getRoleName(), role.getDescription());
+        }
     }
 }
