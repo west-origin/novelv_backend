@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import net.app.novelv.global.security.jwt.JwtAuthenticationFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -28,6 +29,8 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/", "/error", "/favicon.ico", "/api/auth/**")
+                        .permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/videos")
                         .permitAll()
                         .anyRequest().authenticated()
                 )

@@ -22,6 +22,15 @@ app:
   jwt:
     secret: ${JWT_SECRET:change-this-secret-key-to-at-least-32-bytes-long}
     access-token-validity-ms: ${JWT_ACCESS_TOKEN_VALIDITY_MS:3600000}
+  cloudflare:
+    r2:
+      account-id: ${CLOUDFLARE_ACCOUNT_ID:e53ddd024fcaf45c398aa5f81262a740}
+      access-key-id: ${CLOUDFLARE_R2_ACCESS_KEY_ID:a36aa3a6d69a24272bef4094cd392483}
+      secret-access-key: ${CLOUDFLARE_R2_SECRET_ACCESS_KEY:f8b2c981d13e4be88b14e65c479d4c9ab80257535fa1422387a892c8077231b0}
+      bucket-name: ${CLOUDFLARE_R2_BUCKET_NAME:novelv}
+      endpoint: ${CLOUDFLARE_R2_ENDPOINT:https://e53ddd024fcaf45c398aa5f81262a740.r2.cloudflarestorage.com}
+      upload-url-ttl-seconds: ${CLOUDFLARE_R2_UPLOAD_URL_TTL_SECONDS:900}
+      playback-url-ttl-seconds: ${CLOUDFLARE_R2_PLAYBACK_URL_TTL_SECONDS:300}
   oauth2:
     authorized-redirect-uri: ${OAUTH2_AUTHORIZED_REDIRECT_URI:http://localhost:5173/oauth/callback}
     google:
