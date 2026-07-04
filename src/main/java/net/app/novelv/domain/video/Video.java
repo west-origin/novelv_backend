@@ -30,6 +30,12 @@ public class Video {
     @Column(name = "r2_object_key", nullable = false, unique = true, length = 1024)
     private String r2ObjectKey;
 
+    @Column(name = "thumbnail_object_key", length = 1024)
+    private String thumbnailObjectKey;
+
+    @Column(name = "thumbnail_content_type", length = 100)
+    private String thumbnailContentType;
+
     @Column(nullable = false, length = 200)
     private String title;
 
@@ -116,6 +122,15 @@ public class Video {
         this.status = VideoStatus.READY;
         if (durationSeconds != null) {
             this.durationSeconds = durationSeconds;
+        }
+    }
+
+    public void updateThumbnail(String thumbnailObjectKey, String thumbnailContentType) {
+        if (StringUtils.hasText(thumbnailObjectKey)) {
+            this.thumbnailObjectKey = thumbnailObjectKey;
+            this.thumbnailContentType = StringUtils.hasText(thumbnailContentType)
+                    ? thumbnailContentType
+                    : "image/webp";
         }
     }
 

@@ -6,6 +6,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.server.ResponseStatusException;
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
+import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.core.exception.SdkException;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
@@ -17,6 +18,7 @@ import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignReques
 import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest;
 
 import java.net.URI;
+import java.nio.file.Path;
 import java.text.Normalizer;
 import java.time.Duration;
 import java.time.Instant;
@@ -34,12 +36,27 @@ public class CloudflareR2Client {
 
     public R2DirectUpload createDirectUpload(DirectUploadRequest request, Long uploaderId) {
         validateConfig();
-        String objectKey = createObjectKey(request.fileName(), uploaderId);
+        String objectKey = createObjectKey("videos", request.fileName(), uploaderId);
+        return createPresignedUpload(objectKey, request.contentType());
+    }
+
+    public R2DirectUpload createThumbnailUpload(ThumbnailUploadRequest request, Long uploaderId) {
+        validateConfig();
+        String objectKey = createObjectKey("thumbnails", request.fileName(), uploaderId);
+        return createPresignedUpload(objectKey, request.contentType());
+    }
+
+    public String createGeneratedThumbnailObjectKey(Long uploaderId, Long videoId) {
+        return "thumbnails/" + uploaderId + "/" + UUID.randomUUID() + "/video-" + videoId + ".webp";
+    }
+
+    private R2DirectUpload createPresignedUpload(String objectKey, String contentType) {
         Instant expiresAt = Instant.now().plusSeconds(properties.resolvedUploadUrlTtlSeconds());
 
         PutObjectRequest putObjectRequest = PutObjectRequest.builder()
                 .bucket(properties.bucketName())
                 .key(objectKey)
+                .contentType(resolveContentType(contentType))
                 .build();
 
         PutObjectPresignRequest presignRequest = PutObjectPresignRequest.builder()
@@ -57,6 +74,25 @@ public class CloudflareR2Client {
             throw new ResponseStatusException(
                     HttpStatus.BAD_GATEWAY,
                     "Cloudflare R2 upload URL creation failed: " + exception.getMessage(),
+                    exception
+            );
+        }
+    }
+
+    public void uploadObject(String objectKey, Path file, String contentType) {
+        validateConfig();
+        PutObjectRequest putObjectRequest = PutObjectRequest.builder()
+                .bucket(properties.bucketName())
+                .key(objectKey)
+                .contentType(resolveContentType(contentType))
+                .build();
+
+        try (S3Client s3Client = createS3Client()) {
+            s3Client.putObject(putObjectRequest, RequestBody.fromFile(file));
+        } catch (SdkException exception) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_GATEWAY,
+                    "Cloudflare R2 object upload failed: " + exception.getMessage(),
                     exception
             );
         }
@@ -128,15 +164,15 @@ public class CloudflareR2Client {
                 .build();
     }
 
-    private String createObjectKey(String fileName, Long uploaderId) {
+    private String createObjectKey(String prefix, String fileName, Long uploaderId) {
         String safeName = Normalizer.normalize(fileName, Normalizer.Form.NFKD)
                 .replaceAll("[^a-zA-Z0-9._-]", "-")
                 .replaceAll("-+", "-")
                 .toLowerCase(Locale.ROOT);
-        if (!StringUtils.hasText(safeName)) {
+        if (!StringUtils.hasText(safeName) || ".".equals(safeName)) {
             safeName = "video";
         }
-        return "videos/" + uploaderId + "/" + UUID.randomUUID() + "/" + safeName;
+        return prefix + "/" + uploaderId + "/" + UUID.randomUUID() + "/" + safeName;
     }
 
     private String resolveContentType(String contentType) {

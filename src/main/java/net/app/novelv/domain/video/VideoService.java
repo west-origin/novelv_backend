@@ -11,6 +11,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.io.IOException;
+import java.nio.file.Files;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -29,6 +31,7 @@ public class VideoService {
 
     private final CloudflareR2Client cloudflareR2Client;
     private final CloudflareR2Properties properties;
+    private final FfmpegThumbnailExtractor thumbnailExtractor;
     private final VideoRepository videoRepository;
     private final UserRepository userRepository;
 
@@ -56,6 +59,19 @@ public class VideoService {
     }
 
     @Transactional
+    public R2DirectUpload createThumbnailUpload(Long videoId, Long uploaderId, ThumbnailUploadRequest request) {
+        Video video = videoRepository.findByIdAndUploaderId(videoId, uploaderId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Video not found."));
+        if (video.isCancelled()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Cancelled upload cannot receive a thumbnail.");
+        }
+
+        R2DirectUpload upload = cloudflareR2Client.createThumbnailUpload(request, uploaderId);
+        video.updateThumbnail(upload.objectKey(), request.contentType());
+        return upload;
+    }
+
+    @Transactional
     public void completeUpload(Long videoId, Long uploaderId, CompleteUploadRequest request) {
         Video video = videoRepository.findByIdAndUploaderId(videoId, uploaderId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Video not found."));
@@ -64,7 +80,9 @@ public class VideoService {
         }
         if (request != null) {
             video.updateTitle(request.title());
+            validateRequestedThumbnail(video, request);
         }
+        ensureThumbnail(video);
         video.markReady(request == null ? null : request.durationSeconds());
     }
 
@@ -80,6 +98,7 @@ public class VideoService {
         }
 
         cloudflareR2Client.deleteObject(video.getR2ObjectKey());
+        cloudflareR2Client.deleteObject(video.getThumbnailObjectKey());
         videoRepository.deleteByIdAndUploaderIdAndStatusIn(
                 video.getId(),
                 video.getUploaderId(),
@@ -127,9 +146,58 @@ public class VideoService {
                         formatDuration(video.getDurationSeconds()),
                         "NEW",
                         video.getR2ObjectKey(),
-                        cloudflareR2Client.createPlaybackUrl(video.getR2ObjectKey(), video.getContentType())
+                        cloudflareR2Client.createPlaybackUrl(video.getR2ObjectKey(), video.getContentType()),
+                        createThumbnailUrl(video)
                 ))
                 .toList();
+    }
+
+    private void ensureThumbnail(Video video) {
+        if (video.getThumbnailObjectKey() != null && !video.getThumbnailObjectKey().isBlank()) {
+            return;
+        }
+
+        String inputUrl = cloudflareR2Client.createPlaybackUrl(video.getR2ObjectKey(), video.getContentType());
+        thumbnailExtractor.extractFirstFrame(inputUrl, video.getId())
+                .ifPresent(thumbnail -> {
+                    String thumbnailObjectKey = cloudflareR2Client.createGeneratedThumbnailObjectKey(
+                            video.getUploaderId(),
+                            video.getId()
+                    );
+                    try {
+                        cloudflareR2Client.uploadObject(thumbnailObjectKey, thumbnail.file(), thumbnail.contentType());
+                        video.updateThumbnail(thumbnailObjectKey, thumbnail.contentType());
+                    } catch (RuntimeException exception) {
+                        log.warn("Failed to upload generated thumbnail. videoId={}, thumbnailObjectKey={}",
+                                video.getId(), thumbnailObjectKey, exception);
+                    } finally {
+                        deleteTemporaryThumbnail(thumbnail);
+                    }
+                });
+    }
+
+    private void deleteTemporaryThumbnail(FfmpegThumbnailExtractor.ExtractedThumbnail thumbnail) {
+        try {
+            Files.deleteIfExists(thumbnail.file());
+        } catch (IOException exception) {
+            log.debug("Failed to delete temporary FFmpeg thumbnail file. path={}", thumbnail.file(), exception);
+        }
+    }
+
+    private String createThumbnailUrl(Video video) {
+        if (video.getThumbnailObjectKey() == null || video.getThumbnailObjectKey().isBlank()) {
+            return null;
+        }
+        return cloudflareR2Client.createPlaybackUrl(video.getThumbnailObjectKey(), video.getThumbnailContentType());
+    }
+
+    private void validateRequestedThumbnail(Video video, CompleteUploadRequest request) {
+        if (request.thumbnailObjectKey() == null || request.thumbnailObjectKey().isBlank()) {
+            return;
+        }
+        if (!request.thumbnailObjectKey().equals(video.getThumbnailObjectKey())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Thumbnail upload was not registered for this video.");
+        }
     }
 
     @Transactional(readOnly = true)

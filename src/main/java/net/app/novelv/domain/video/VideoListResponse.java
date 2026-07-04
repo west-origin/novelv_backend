@@ -7,6 +7,7 @@ public record VideoListResponse(
         String time,
         String badge,
         String objectKey,
-        String videoUrl
+        String videoUrl,
+        String thumbnailUrl
 ) {
 }

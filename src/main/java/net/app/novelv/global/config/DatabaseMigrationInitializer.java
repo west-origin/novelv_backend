@@ -25,6 +25,8 @@ public class DatabaseMigrationInitializer implements ApplicationRunner {
 
     private void migrateVideosTableForR2() {
         jdbcTemplate.execute("ALTER TABLE videos ADD COLUMN IF NOT EXISTS r2_object_key VARCHAR(1024)");
+        jdbcTemplate.execute("ALTER TABLE videos ADD COLUMN IF NOT EXISTS thumbnail_object_key VARCHAR(1024)");
+        jdbcTemplate.execute("ALTER TABLE videos ADD COLUMN IF NOT EXISTS thumbnail_content_type VARCHAR(100)");
         jdbcTemplate.execute("ALTER TABLE videos ADD COLUMN IF NOT EXISTS cancelled_at TIMESTAMP");
         jdbcTemplate.execute("ALTER TABLE videos ALTER COLUMN cloudflare_video_id DROP NOT NULL");
         jdbcTemplate.execute("CREATE UNIQUE INDEX IF NOT EXISTS uk_videos_r2_object_key ON videos (r2_object_key) WHERE r2_object_key IS NOT NULL");

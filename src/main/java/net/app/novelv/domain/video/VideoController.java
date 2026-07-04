@@ -32,6 +32,15 @@ public class VideoController {
         return videoService.createDirectUpload(request, currentUserId(authentication));
     }
 
+    @PostMapping("/creator/videos/{videoId}/thumbnail-upload")
+    public R2DirectUpload createThumbnailUpload(
+            @PathVariable Long videoId,
+            @Valid @RequestBody ThumbnailUploadRequest request,
+            Authentication authentication
+    ) {
+        return videoService.createThumbnailUpload(videoId, currentUserId(authentication), request);
+    }
+
     @PostMapping("/creator/videos/{videoId}/complete")
     public void completeUpload(
             @PathVariable Long videoId,
