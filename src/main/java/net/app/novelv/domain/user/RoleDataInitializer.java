@@ -25,14 +25,14 @@ public class RoleDataInitializer implements CommandLineRunner {
         );
 
         for (RoleSeed seed : seeds) {
-            roleRepository.findByRoleName(seed.roleName())
+            roleRepository.findByCode(seed.code())
                     .ifPresentOrElse(
-                            role -> role.setDescription(seed.description()),
-                            () -> roleRepository.save(new Role(seed.roleName(), seed.description()))
+                            role -> role.setDisplayName(seed.displayName()),
+                            () -> roleRepository.save(new Role(seed.code(), seed.displayName()))
                     );
         }
     }
 
-    private record RoleSeed(String roleName, String description) {
+    private record RoleSeed(String code, String displayName) {
     }
 }

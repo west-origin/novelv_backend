@@ -25,17 +25,17 @@ public class Role {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "role_name", length = 50, nullable = false, unique = true)
-    private String roleName;
+    @Column(name = "code", length = 50, nullable = false, unique = true)
+    private String code;
 
-    @Column(length = 255)
-    private String description;
+    @Column(name = "display_name", length = 50)
+    private String displayName;
 
     @ManyToMany(mappedBy = "roles")
     private Set<User> users = new HashSet<>();
 
-    public Role(String roleName, String description) {
-        this.roleName = roleName;
-        this.description = description;
+    public Role(String code, String displayName) {
+        this.code = code;
+        this.displayName = displayName;
     }
 }

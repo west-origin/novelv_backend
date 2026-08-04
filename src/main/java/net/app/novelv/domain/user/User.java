@@ -100,17 +100,17 @@ public class User {
         role.getUsers().remove(this);
     }
 
-    public String getPrimaryRoleName() {
+    public String getPrimaryRoleCode() {
         return roles.stream()
-                .map(Role::getRoleName)
+                .map(Role::getCode)
                 .sorted()
                 .findFirst()
                 .orElse("ROLE_USER");
     }
 
-    public Set<String> getRoleNames() {
+    public Set<String> getRoleCodes() {
         return roles.stream()
-                .map(Role::getRoleName)
+                .map(Role::getCode)
                 .collect(Collectors.toUnmodifiableSet());
     }
 

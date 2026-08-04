@@ -32,11 +32,11 @@ public record UserMeResponse(
     }
 
     public record RoleProfile(
-            String roleName,
-            String description
+            String code,
+            String displayName
     ) {
         public static RoleProfile from(Role role) {
-            return new RoleProfile(role.getRoleName(), role.getDescription());
+            return new RoleProfile(role.getCode(), role.getDisplayName());
         }
     }
 }

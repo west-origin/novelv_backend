@@ -53,20 +53,20 @@ public class AuthService {
         String accessToken = jwtTokenProvider.createAccessToken(
                 user.getId(),
                 user.getEmail(),
-                user.getPrimaryRoleName()
+                user.getPrimaryRoleCode()
         );
         return AuthResponse.of(accessToken, user);
     }
 
     private void ensureDefaultRole(User user) {
         boolean alreadyHasDefaultRole = user.getRoles().stream()
-                .anyMatch(role -> DEFAULT_ROLE.equals(role.getRoleName()));
+                .anyMatch(role -> DEFAULT_ROLE.equals(role.getCode()));
 
         if (alreadyHasDefaultRole) {
             return;
         }
 
-        Role defaultRole = roleRepository.findByRoleName(DEFAULT_ROLE)
+        Role defaultRole = roleRepository.findByCode(DEFAULT_ROLE)
                 .orElseGet(() -> roleRepository.save(new Role(DEFAULT_ROLE, "일반 회원")));
         user.addRole(defaultRole);
     }

@@ -30,6 +30,9 @@ public class OAuthClientProperties {
     @Value("${app.oauth2.google.user-info-uri}")
     private String googleUserInfoUri;
 
+    @Value("${app.oauth2.google.redirect-uri}")
+    private String googleRedirectUri;
+
     @Value("${app.oauth2.kakao.token-uri}")
     private String kakaoTokenUri;
 
@@ -42,18 +45,21 @@ public class OAuthClientProperties {
     @Value("${app.oauth2.naver.user-info-uri}")
     private String naverUserInfoUri;
 
+    @Value("${app.oauth2.naver.redirect-uri}")
+    private String naverRedirectUri;
+
     public Client google() {
-        return new Client(googleClientId, googleClientSecret, googleTokenUri, googleUserInfoUri);
+        return new Client(googleClientId, googleClientSecret, googleTokenUri, googleUserInfoUri, googleRedirectUri);
     }
 
     public Client kakao() {
-        return new Client(kakaoClientId, kakaoClientSecret, kakaoTokenUri, kakaoUserInfoUri);
+        return new Client(kakaoClientId, kakaoClientSecret, kakaoTokenUri, kakaoUserInfoUri, "");
     }
 
     public Client naver() {
-        return new Client(naverClientId, naverClientSecret, naverTokenUri, naverUserInfoUri);
+        return new Client(naverClientId, naverClientSecret, naverTokenUri, naverUserInfoUri, naverRedirectUri);
     }
 
-    public record Client(String clientId, String clientSecret, String tokenUri, String userInfoUri) {
+    public record Client(String clientId, String clientSecret, String tokenUri, String userInfoUri, String redirectUri) {
     }
 }

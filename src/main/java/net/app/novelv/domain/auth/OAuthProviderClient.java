@@ -41,7 +41,7 @@ public class OAuthProviderClient {
         MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
         form.add("grant_type", "authorization_code");
         form.add("client_id", client.clientId());
-        form.add("redirect_uri", redirectUri);
+        form.add("redirect_uri", resolveRedirectUri(provider, client, redirectUri));
         form.add("code", code);
 
         if (client.clientSecret() != null && !client.clientSecret().isBlank()) {
@@ -127,6 +127,16 @@ public class OAuthProviderClient {
             case KAKAO -> properties.kakao();
             case NAVER -> properties.naver();
         };
+    }
+
+    private String resolveRedirectUri(SocialProvider provider, OAuthClientProperties.Client client, String requestRedirectUri) {
+        if (requestRedirectUri != null && !requestRedirectUri.isBlank()) {
+            return requestRedirectUri;
+        }
+        if (client.redirectUri() != null && !client.redirectUri().isBlank()) {
+            return client.redirectUri();
+        }
+        throw new OAuthProviderException(provider + " redirect_uri is required.");
     }
 
     private String fallbackNickname(Object nickname, String email, String providerId) {
